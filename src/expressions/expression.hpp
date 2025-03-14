@@ -1,115 +1,265 @@
 #ifndef EXPRESSIONS_HPP
 #define EXPRESSIONS_HPP
-#include <string>
-#include <map>
+
+
+
+#include <complex>
 #include <memory>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
 
 
 
 template <typename T> class ExpressionImpl {
-    public:
-        
-        ExpressionImpl() = default;
-        virtual ~ExpressionImpl() = default;
+  public:
+	virtual ~ExpressionImpl() = default;
 
-        virtual T eval(std::map<std::string, T> context) const = 0;
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const = 0;
+	virtual std::shared_ptr<ExpressionImpl<T>> with_context(const std::unordered_map<std::string, T> &context) const = 0;
 
-        virtual std::string to_string() const = 0;
+	virtual T eval(void) const = 0;
+	virtual std::string to_string(void) const = 0;
 };
 
 template <typename T> class Expression {
-    public:
-        Expression(T number);
-	    Expression(const std::string &variable);
+  public:
+	Expression(T number);
+	Expression(const std::string &variable);
 
-        ~Expression() = default;
-	    Expression(const Expression &other);
+	~Expression() = default;
+	Expression(const Expression &other);
 
-        friend Expression operator""_val(T val);
-        friend Expression operator""_var(const char* variable);
-        friend Expression operator""_var(const char* variable, size_t size);
+	Expression<T> sin(void) const;
+	Expression<T> cos(void) const;
+	Expression<T> ln(void) const;
+	Expression<T> exp(void) const;
 
-       
-        Expression<T>  operator+ (const Expression& that) const;
-        Expression<T> &operator+=(const Expression& that);
-        Expression<T>  operator* (const Expression& that) const;
-        Expression<T> &operator*=(const Expression& that);
+	Expression<T> diff(const std::string &by) const;
+	Expression<T> with_context(const std::unordered_map<std::string, T> &context
+	) const;
+	T eval(void) const;
+	T eval_with(const std::unordered_map<std::string, T> &context) const;
+	std::string to_string(void) const;
 
-        
-        T eval(std::map<std::string, T> context) const;
-        std::string to_string() const;
+	Expression<T> &operator=(const Expression<T> &other);
+	Expression<T> &operator=(Expression<T> &&other);
 
+	Expression<T> operator+(const Expression<T> &other) const;
+	Expression<T> &operator+=(const Expression<T> &other);
 
-    private:
-        Expression(std::shared_ptr<ExpressionImpl<T>> impl);
-        std::shared_ptr<ExpressionImpl<T>> impl_;
+	Expression<T> operator-(const Expression<T> &other) const;
+	Expression<T> &operator-=(const Expression<T> &other);
+
+	Expression<T> operator*(const Expression<T> &other) const;
+	Expression<T> &operator*=(const Expression<T> &other);
+
+	Expression<T> operator/(const Expression<T> &other) const;
+	Expression<T> &operator/=(const Expression<T> &other);
+
+	Expression<T> operator^(const Expression<T> &other) const;
+	Expression<T> &operator^=(const Expression<T> &other);
+
+  private:
+	Expression(std::shared_ptr<ExpressionImpl<T>> impl_);
+	std::shared_ptr<ExpressionImpl<T>> impl;
+
 };
 
+template <typename T> class Value : public ExpressionImpl<T> {
+  private:
+	T value;
 
-template <typename T> class Value : public ExpressionImpl {
-    public:
-        
-        Value(T number);
+  public:
+	explicit Value(T number);
 
-        virtual ~Value() override = default;
-
-        
-        virtual T eval(std::map<std::string, T> context) const override;
-        virtual std::string to_string() const override;
-
-    private:
-        T value;
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
 };
 
+template <typename T> class Variable : public ExpressionImpl<T> {
+  private:
+	std::string name;
 
-template <typename T> class Variable : public ExpressionImpl
-{
-public:
-   
-    Variable(std::string name);
+  public:
+	Variable(const std::string var);
 
-    virtual ~Variable() override = default;
-
-   
-    virtual T eval(std::map<std::string, T> context) const override;
-    virtual std::string to_string() const override;
-
-private:
-    std::string name_;
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
 };
 
+template <typename T> class SinFunc : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> argument;
 
-template <typename T> class OperationAdd : public ExpressionImpl
-{
-public:
+  public:
+	explicit SinFunc(std::shared_ptr<ExpressionImpl<T>> argument_);
 
-    OperationAdd(Expression left, Expression right);
-
-    virtual ~OperationAdd() override = default;
-
-    virtual T eval(std::map<std::string, T> context) const override;
-    virtual std::string to_string() const override;
-
-private:
-    Expression left;
-    Expression right;
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
 };
 
+template <typename T> class CosFunc : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> argument;
 
-template <typename T> class OperationMult : public ExpressionImpl
-{
-public:
+  public:
+	explicit CosFunc(std::shared_ptr<ExpressionImpl<T>> argument_);
 
-    OperationMult(Expression left, Expression right);
-
-    virtual ~OperationMult() override = default;
-    
-    virtual T eval(std::map<std::string, T> context) const override;
-    virtual std::string to_string() const override;
-
-private:
-    Expression left_;
-    Expression right_;
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
 };
 
+template <typename T> class LnFunc : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> argument;
+
+  public:
+	explicit LnFunc(std::shared_ptr<ExpressionImpl<T>> argument_);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class ExpFunc : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> argument;
+
+  public:
+	explicit ExpFunc(std::shared_ptr<ExpressionImpl<T>> argument_);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class OperationAdd : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> left;
+	std::shared_ptr<ExpressionImpl<T>> right;
+
+  public:
+	OperationAdd(
+		const std::shared_ptr<ExpressionImpl<T>> &_left,
+		const std::shared_ptr<ExpressionImpl<T>> &_right
+	);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class OperationMult : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> left;
+	std::shared_ptr<ExpressionImpl<T>> right;
+
+  public:
+	OperationMult(
+		const std::shared_ptr<ExpressionImpl<T>> &_left,
+		const std::shared_ptr<ExpressionImpl<T>> &_right
+	);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class OperationSub : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> left;
+	std::shared_ptr<ExpressionImpl<T>> right;
+
+  public:
+	OperationSub(
+		const std::shared_ptr<ExpressionImpl<T>> &_left,
+		const std::shared_ptr<ExpressionImpl<T>> &_right
+	);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class OperationDiv : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> left;
+	std::shared_ptr<ExpressionImpl<T>> right;
+
+  public:
+	OperationDiv(
+		const std::shared_ptr<ExpressionImpl<T>> &_left,
+		const std::shared_ptr<ExpressionImpl<T>> &_right
+	);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
+
+template <typename T> class OperationPow : public ExpressionImpl<T> {
+  private:
+	std::shared_ptr<ExpressionImpl<T>> left;
+	std::shared_ptr<ExpressionImpl<T>> right;
+
+  public:
+	OperationPow(
+		const std::shared_ptr<ExpressionImpl<T>> &_left,
+		const std::shared_ptr<ExpressionImpl<T>> &_right
+	);
+
+	virtual std::shared_ptr<ExpressionImpl<T>> diff(const std::string &by
+	) const override;
+	virtual std::shared_ptr<ExpressionImpl<T>>
+	with_context(const std::unordered_map<std::string, T> &context
+	) const override;
+	virtual T eval(void) const override;
+	virtual std::string to_string(void) const override;
+};
 #endif
