@@ -1,6 +1,8 @@
 #include <expression.hpp>
+#include "../parser/parser.hpp"
 #include <stdexcept>
 #include <complex>
+
 // ============
 // |Expression|
 // ============
@@ -156,6 +158,11 @@ template <typename T>
 std::string Expression<T>::to_string() const 
 {
     return impl->to_string();
+}
+
+template<typename T>
+Expression<T> Expression<T>::from_string(const std::string& expression_str, bool ignore_case) {
+    return Parser<T>(expression_str, ignore_case).parse();
 }
 
 template class Expression<long double>;
@@ -655,7 +662,7 @@ template <typename T> T ExpFunc<T>::eval() const
 
 template <typename T> std::string ExpFunc<T>::to_string(void) const 
 {
-	return "e^(" + argument->to_string() + ")";
+	return "exp(" + argument->to_string() + ")";
 };
 
 template class ExpFunc<long double>;

@@ -9,7 +9,13 @@
 #include <type_traits>
 #include <unordered_map>
 
-
+enum class OpPrecedence {
+    AddSub = 0,
+    Mult = 1,
+    Div = 2,
+    Pow = 3
+};
+template <typename T> class Parser;
 
 template <typename T> class ExpressionImpl {
   public:
@@ -42,6 +48,7 @@ template <typename T> class Expression {
 	T eval(void) const;
 	T eval_with(const std::unordered_map<std::string, T> &context) const;
 	std::string to_string(void) const;
+	static Expression<T> from_string(const std::string& expression_str, bool ignore_case);
 
 	Expression<T> &operator=(const Expression<T> &other);
 	Expression<T> &operator=(Expression<T> &&other);
@@ -64,7 +71,7 @@ template <typename T> class Expression {
   private:
 	Expression(std::shared_ptr<ExpressionImpl<T>> impl_);
 	std::shared_ptr<ExpressionImpl<T>> impl;
-
+	friend class Parser<T>;
 };
 
 template <typename T> class Value : public ExpressionImpl<T> {
